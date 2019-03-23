@@ -16,11 +16,11 @@ using std::vector;
 namespace runawayGem {
 enum Color {
     RED,
-    GOLD,
     GREEN,
     BLUE,
     WHITE,
     BLACK,
+    GOLD,
     UNDEFINED
 }; //gold是黄金，其余所有颜色都可以表示宝石或红利
 
@@ -178,7 +178,7 @@ class PurchaseReservedCard : public Move {
     int id;
 };
 
-const int MAX_DEPTH = 1;
+const int MAX_DEPTH = 3;
 const int MAX_DIFFRENT_COLOR = 3;
 const int COLORS_NUM = 5;
 const int MAX_FIT = 10000;

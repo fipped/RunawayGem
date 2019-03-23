@@ -118,12 +118,9 @@ Value EmptyMove::toJson() const {
 Value GetDiffColorGems::toJson() const {
     Value next_move;
     Value get_color;
-
-    vector<const Color>::iterator it = colors.begin();
     for (int i = 0; i < colors.size(); i++) {
-        get_color[i] = *(it + i);
+        get_color[i] = colors[i];
     }
-
     next_move["get_different_color_gems"] = get_color;
     return next_move;
 }

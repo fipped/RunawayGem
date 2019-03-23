@@ -88,7 +88,6 @@ void getPossibleMove(State state, vector<MovePtr>& all_moves) {
     // 1 golden & save 1 card
     // only the cards on table are considered
     // TODO: reserve a unknown card
-
     if(player_gem_num + 1 <= MAX_GEMS_NUM && 
       state.table.gems.count(GOLD) && state.table.gems.at(GOLD) > 0) {
       for (int i = 0; i < table_cards.size(); i++) {
@@ -130,12 +129,13 @@ double evaluateState(State state, string player) {
     const double WEIGHT_GEMS = weights[2];
     const double WEIGHT_GOLD_PLUS = weights[3];
 
-    const double POTENTIAL_AVG_FITNESS = 0.5; //潜在可购买卡片的收益; 额外core/bonus/收益 / 差的GEM数量 * eight (?)
+    const double POTENTIAL_AVG_FITNESS = 0.5; //潜在可购买卡片的收益; 额外core/bonus/收益 / 差的GEM数量 * weight (?)
     const double POTENTIAL_AVG_FITNESS_RESERVED = 1; // 保留卡不会被别人抢先购买
 
     double res = 0;
     for (auto &gem : state.players[player].gems) {
-        if (gem.first == GOLD) {
+	res += gem.second * WEIGHT_GEMS;        
+	if (gem.first == GOLD) {
             res += gem.second * WEIGHT_GOLD_PLUS;
         }
     }
@@ -162,7 +162,7 @@ Fitness search(const State &state, int depth, string player_name) {
     static int vistors = 0;
     vistors++;
     Fitness all_fitness;
-    if (vistors > 10000 || depth == MAX_DEPTH) {
+    if (depth == MAX_DEPTH) {
         for (const auto &player : state.players) {
             all_fitness[player.first] = evaluateState(state, player.first);
         }
@@ -174,14 +174,16 @@ Fitness search(const State &state, int depth, string player_name) {
     double max_fitness = 0;
     vector<MovePtr> moves;
     getPossibleMove(state, moves);
+    string now_player = state.player_name;
 
     for (auto &mv : moves) {
         State new_state = state;
         mv->move(new_state);
+	state.player_name = next_player[state.player_name];
         // 玩家考虑 采取操作 mv 之后，下家采取最佳策略后，所有人的适应度为 fits
-        Fitness fits = search(new_state, depth + 1, new_state.player_name);
+        Fitness fits = search(new_state, depth+1, new_state.player_name);
         // 计算出该得分对于自己来说
-        double my_fitness = calFinalFitness(fits, player_name);
+        double my_fitness = calFinalFitness(fits, now_player);
         if (my_fitness > max_fitness) {
             all_fitness = fits;
             max_fitness = my_fitness;
@@ -198,13 +200,25 @@ MovePtr findNextMove(const State &state) {
     getPossibleMove(state, moves);
     MovePtr best_move(new EmptyMove);
     for (auto& mv : moves) {
-        Fitness fits = search(state, 0, state.player_name);
+	State new_state = state;
+        string now_player = state.player_name;
+        mv->move(new_state);
+	state.player_name = next_player[state.player_name];
+        Fitness fits = search(new_state, 0, new_state.player_name);
+	// cout << mv->toJson() << endl;
+	double total_fits = calFinalFitness(fits, now_player);
+	double my_fits = fits[now_player];
+        // cout << total_fits << endl;
+	// cout << my_fits << endl;
         //TODO: 用search试每种走法的最终受益，取最大的行动
-        if (fits[state.player_name] >= max_fits) {
-            max_fits = fits[state.player_name];
+        if (total_fits >= max_fits) {
+            max_fits = total_fits;
             best_move.reset(mv.release());
         }
     }
+    cout << "best move: " << endl;
+    cout << best_move->toJson() << endl;
+    cout << max_fits << endl;
     return best_move;
 }
 
