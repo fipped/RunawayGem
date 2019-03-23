@@ -8,28 +8,6 @@ using std::ifstream;
 
 namespace runawayGem {
 
-Color convertToColor(string color) {
-    if (color == "red") {
-        return RED;
-    }
-    if (color == "gold") {
-        return GOLD;
-    }
-    if (color == "green") {
-        return GREEN;
-    }
-    if (color == "blue") {
-        return BLUE;
-    }
-    if (color == "white") {
-        return WHITE;
-    }
-    if (color == "black") {
-        return BLACK;
-    }
-    return UNDEFINED;
-}
-
 int getInt(Value int_field) {
     if(int_field.isInt()) {
         return int_field.asInt();
@@ -39,7 +17,7 @@ int getInt(Value int_field) {
 
 void parseGems(const Value& gems, Gems& g) {
     for (unsigned int i = 0; i < gems.size(); i++) {
-        Color color = convertToColor(gems[i]["color"].asString());
+        Color color = color_iden[gems[i]["color"].asString()];
         int count = getInt(gems[i]["count"]);
         g[color] = count;
     }
@@ -50,10 +28,10 @@ void parseCards(const Value& cards, vector<Card>& c) {
         const Value& card = cards[i];
         int level = getInt(card["level"]);
         int score = getInt(card["score"]);
-        Color color = convertToColor(card["color"].asString());
+        Color color = color_iden[card["color"].asString()];
         Gems costs;
         for (unsigned int k = 0; k < card["costs"].size(); k++) {
-            Color color = convertToColor(card["costs"][k]["color"].asString());
+            Color color = color_iden[card["costs"][k]["color"].asString()];
             int count = getInt(card["costs"][k]["count"]);
             costs[color] = count;
         }
@@ -67,7 +45,7 @@ void parseNobles(const Value& nobles, vector<Noble>& n) {
         Gems req;
         for (unsigned int j = 0; j < noble["requirements"].size(); j++) {
             const Value& requirement = noble["requirements"][j];
-            Color color = convertToColor(requirement["color"].asString());
+            Color color = color_iden[requirement["color"].asString()];
             int count = getInt(requirement["count"]);
             req[color] = count;
         }
@@ -76,7 +54,10 @@ void parseNobles(const Value& nobles, vector<Noble>& n) {
     }
 }
 
-void parsePlayers(const Value& players_value, map<string, Player>& players_map) {
+void parsePlayers(const Value& players_value, 
+map<string, Player>& players_map,
+map<string, string>& next_player) {
+    string first_name, last_name;
     for (unsigned int i = 0; i < players_value.size(); i++) {
         const Value& player_value = players_value[i];
 
@@ -94,20 +75,29 @@ void parsePlayers(const Value& players_value, map<string, Player>& players_map) 
             }
         }
         parseCards(player_value["reserved_cards"], player.reserved_cards);
+        if(i == 0)first_name = name;
+        else next_player[last_name] = name;
+        last_name = name;
     }
+    next_player[first_name] = last_name;
 }
 
-State readStateFromJson(string filename) {
-    State state;
+State readStateFromJson(string input) {
     Value value;
-    ifstream config_doc(filename, ifstream::binary);
-    config_doc >> value;
+    CharReaderBuilder builder;
+    unique_ptr<CharReader> const reader(builder.newCharReader());
+    string errs;
+    if(!reader->parse(input.c_str(), input.c_str()+input.length(), &value, &errs)) {
+        ifstream doc(input, ifstream::binary);
+        doc >> value;
+    }
+    State state;
     state.round = getInt(value["round"]);
     state.player_name = value["playerName"].asString();
     parseGems(value["table"]["gems"], state.table.gems);
     parseCards(value["table"]["cards"], state.table.cards);
     parseNobles(value["table"]["nobles"], state.table.nobles);
-    parsePlayers(value["players"], state.players);
+    parsePlayers(value["players"], state.players, state.next_player);
     return state;
 }
 
@@ -119,9 +109,8 @@ Value GetDiffColorGems::toJson() const {
     Value next_move;
     Value get_color;
 
-    vector<const Color>::iterator it = colors.begin();
-    for (int i = 0; i < colors.size(); i++) {
-        get_color[i] = *(it + i);
+    for (auto& c:colors) {
+        get_color.append(color_string[c]);
     }
 
     next_move["get_different_color_gems"] = get_color;
@@ -130,11 +119,7 @@ Value GetDiffColorGems::toJson() const {
 
 Value GetTwoSameColorGems::toJson() const {
     Value next_move;
-    Value get_color;
-
-    get_color[0] = color;
-
-    next_move["get_tow_same_color_gems"] = get_color;
+    next_move["get_two_same_color_gems"] = color_string[color];
     return next_move;
 }
 
@@ -145,7 +130,7 @@ Value ReserveCard::toJson() const {
     Value get_card;
     Value get_costs;
 
-    get_card["color"] = card.color;
+    get_card["color"] = color_string[card.color];
     int i = 0;
     for (auto &cost : card.costs) {
         get_costs[i]["color"] = cost.first;
@@ -176,7 +161,7 @@ Value PurchaseCard::toJson() const {
     Value get_purchase_card;
     Value get_costs;
 
-    get_purchase_card["color"] = card.color;
+    get_purchase_card["color"] = color_string[card.color];
     int i = 0;
     for (auto &cost : card.costs) {
         get_costs[i]["color"] = cost.first;
@@ -197,10 +182,10 @@ Value PurchaseReservedCard::toJson() const {
     Value get_purchase_reserved_card;
     Value get_costs;
 
-    get_purchase_reserved_card["color"] = card.color;
+    get_purchase_reserved_card["color"] = color_string[card.color];
     int i = 0;
     for (auto &cost : card.costs) {
-        get_costs[i]["color"] = cost.first;
+        get_costs[i]["color"] = color_string[cost.first];
         get_costs[i]["count"] = cost.second;
         i++;
     }
@@ -220,7 +205,7 @@ Value Noble::toJson() const {
 
     int i = 0;
     for (auto &req : requirements) {
-        get_requirements[i]["color"] = req.first;
+        get_requirements[i]["color"] = color_string[req.first];
         get_requirements[i]["count"] = req.second;
         i++;
     }

@@ -9,4 +9,4 @@ runawayGem: main.cc runawayGem.cc jsonUtil.cc move.cc
 all: runawayGem
 
 clean:
-	rm -f build
+	rm -rf build

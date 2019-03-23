@@ -24,6 +24,10 @@ enum Color {
     UNDEFINED
 }; //gold是黄金，其余所有颜色都可以表示宝石或红利
 
+static map<string, Color> color_iden = {{"red", RED}, {"gold", GOLD}, {"green", GREEN}, {"blue", BLUE}, {"white", WHITE}, {"black", BLACK}};
+
+static map<Color, string> color_string = {{RED, "red"}, {GOLD, "gold"}, {GREEN, "green"}, {BLUE, "blue"}, {WHITE, "white"}, {BLACK, "black"}};
+
 // 宝石(颜色 -> 个数)
 using Gems = map<enum Color, int>;
 // 评估一个状态下玩家的适应程度（越高越可能 win）
@@ -76,13 +80,13 @@ class Noble {
 
 class Player {
   public:
-    Player(string _name = "", int _score=0) : name(_name), score(_score) {}
-    string name;                 // 玩家名称
-    int score;                   // 玩家当前分数
-    Gems gems;                   // 玩家当前拥有的每种宝石的数目
-    Gems bonus;                  // 玩家当前拥有的每种红利的数目
+    Player(string _name = "", int _score = 0) : name(_name), score(_score) {}
+    string name;                  // 玩家名称
+    int score;                    // 玩家当前分数
+    Gems gems;                    // 玩家当前拥有的每种宝石的数目
+    Gems bonus;                   // 玩家当前拥有的每种红利的数目
     vector<Card> purchased_cards; // 购买了的发展卡
-    vector<Card> reserved_cards; // 保留卡
+    vector<Card> reserved_cards;  // 保留卡
 };
 
 // 桌面
@@ -189,7 +193,7 @@ Json::Value getJsonSolution(const State &state);
 
 MovePtr findNextMove(const State &state);
 double evaluateState(State state, string player);
-void getPossibleMove(State state, vector<MovePtr>& all_moves);
+void getPossibleMove(State state, vector<MovePtr> &all_moves);
 double calFinalFitness(const Fitness &fits, string player_name);
 Fitness search(const State &state, int depth, string player_name);
 bool appreciateNoble(const State &state, Noble &app_noble);

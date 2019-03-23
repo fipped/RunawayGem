@@ -188,7 +188,7 @@ MovePtr findNextMove(const State &state) {
     for (auto& mv : moves) {
         Fitness fits = search(state, 0, state.player_name);
         //TODO: 用search试每种走法的最终受益，取最大的行动
-        if (fits[state.player_name] >= max_fits) {
+        if (fits[state.player_name] > max_fits) {
             max_fits = fits[state.player_name];
             best_move.reset(mv.release());
         }

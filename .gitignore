@@ -1,4 +1,6 @@
 .vscode
+run.sh
 /build/
 .DS_Store
 Puzzle
+*.jar
