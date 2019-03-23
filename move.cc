@@ -29,7 +29,12 @@ void PurchaseCard::move(State &state) const {
     now_player.score += card.score;
     now_player.gems[card.color]++;
     for (auto &c : card.costs) {
-        now_player.gems[c.first] -= max(card.costs.at(c.first) - now_player.bonus[c.first], 0);
+        if(card.costs[c.first] < now_player.bonus[c.first] + now_player.gems[c.first]) {
+			  	now_player.gems[GOLD] -= now_player.bonus[c.first] + now_player.gems[c.first] - card.costs.at(c.first);
+			  	now_player.gems[c.first] = 0;
+			  }
+			  else
+				  now_player.gems[c.first] -= card.costs.at(c.first) - now_player.bonus[c.first];
     }
     now_player.bonus[card.color]++;
 }
@@ -40,7 +45,12 @@ void PurchaseReservedCard::move(State &state) const {
     now_player.score += card.score;
     now_player.gems[card.color]++;
     for (auto &c : card.costs) {
-        now_player.gems[c.first] -= max(card.costs.at(c.first) - now_player.bonus[c.first], 0);
+        if(card.costs[c.first] < now_player.bonus[c.first] + now_player.gems[c.first]) {
+			  	now_player.gems[GOLD] -= now_player.bonus[c.first] + now_player.gems[c.first] - card.costs.at(c.first);
+			  	now_player.gems[c.first] = 0;
+			  }
+			  else
+				  now_player.gems[c.first] -= card.costs.at(c.first) - now_player.bonus[c.first];
     }
     now_player.bonus[card.color]++;
 }
