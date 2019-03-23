@@ -100,18 +100,31 @@ vector<MovePtr> getPossibleMove(State state) {
     return all_moves;
 }
 
+// TODO: 加上potential收益
 double evaluateState(State state, string player) {
-    double res = 0;
-    for (auto &b : state.players[player].bonus) {
-        res += b.second;
-    }
+    // Simple evaluate
+    // params
+    const double WEIGHT_SCORE = 100;
+    const double WEIGHT_BONUS = 10;
+    const double WEIGHT_GEMS = 1;
+    const double WEIGHT_GOLD_PLUS = 0.2;
 
+    const double POTENTIAL_AVG_FITNESS = 0.5; //潜在可购买卡片的收益; 额外core/bonus/收益 / 差的GEM数量 * eight (?)
+    const double POTENTIAL_AVG_FITNESS_RESERVED = 1; // 保留卡不会被别人抢先购买
+    // 买潜在cards花费更多的bonus更少的gems会更好？
+
+    double res = 0;
     for (auto &gem : state.players[player].gems) {
-        res += gem.second;
         if (gem.first == GOLD) {
-            res += gem.second * 0.2;
+            res += gem.second * WEIGHT_GOLD_PLUS;
         }
     }
+    for (auto &b : state.players[player].bonus) {
+        res += b.second * WEIGHT_BONUS;
+    }
+
+    res += state.players[player].score * WEIGHT_SCORE;
+
     return res;
 }
 
