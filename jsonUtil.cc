@@ -42,9 +42,9 @@ Value PurchaseReservedCard::toJson() const {
 }
 
 Value Noble::toJson() const {
-    Value next_move;
+    Value noble;
     // TODO
-    return next_move;
+    return noble;
 }
 
 Value getJsonSolution(const State& state) {
