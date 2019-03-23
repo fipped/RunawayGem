@@ -66,7 +66,7 @@ void getPossibleMove(const State &state, vector<MovePtr> &all_moves) {
     // 1 golden & save 1 card
     // only the cards on table are considered
     // TODO: reserve a unknown card
-    if (player_gem_num + 1 <= MAX_GEMS_NUM &&
+    if (player_gem_num + 1 <= MAX_GEMS_NUM && state.players.at(state.player_name).reserved_cards.size() < 3 &&
             state.table.gems.count(GOLD) && state.table.gems.at(GOLD) > 0) {
         for (int i = 0; i < table_cards.size(); i++) {
             all_moves.emplace_back(new ReserveCard(table_cards[i], i));
@@ -150,8 +150,8 @@ Fitness search(const State &state, int depth, string player_name) {
 
     string now_player = state.player_name;
     double terminal_time = 4.9;
-    if ((clock() - start_time) >  terminal_time * CLOCKS_PER_SEC || 
-        depth == MAX_DEPTH || 
+    if ((clock() - start_time) >  terminal_time * CLOCKS_PER_SEC ||
+        depth == MAX_DEPTH ||
         (depth>1 && calFinalFitness(all_fitness, now_player) < MAX_FIT)) {
         return all_fitness;
     }
