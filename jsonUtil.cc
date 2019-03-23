@@ -1,9 +1,8 @@
 #include "runawayGem.hpp"
-#include <fstream>
 #include <json/json.h>
 
-namespace runawayGem {
-using Json::Value;
+using namespace runawayGem;
+using namespace Json;
 
 State readStateFromJson() {
     State state;
@@ -55,5 +54,3 @@ Value getJsonSolution(const State& state) {
     // TODO
     return solution;
 }
-
-} // namespace runawayGem
