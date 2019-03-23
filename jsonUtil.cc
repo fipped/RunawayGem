@@ -1,9 +1,10 @@
 #include "runawayGem.hpp"
-#include <json/json.h>
+#include "json/json.h"
 
-using namespace runawayGem;
+// using namespace runawayGem;
 using namespace Json;
 
+namespace runawayGem {
 State readStateFromJson() {
     State state;
     // TODO
@@ -53,4 +54,5 @@ Value getJsonSolution(const State& state) {
     Value nobels;
     // TODO
     return solution;
+}
 }
