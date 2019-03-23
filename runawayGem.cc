@@ -1,6 +1,11 @@
 #include "runawayGem.hpp"
+#include <fstream>
+#include <ctime>
 
 namespace runawayGem {
+
+std::ofstream logfile("run.log");
+double start_time;
 
 bool canAfford(const Gems &ori_gems, const Gems &bonus, const Card &card) {
     int golden = ori_gems.count(GOLD) ? ori_gems.at(GOLD) : 0;
@@ -9,11 +14,11 @@ bool canAfford(const Gems &ori_gems, const Gems &bonus, const Card &card) {
         gems[a.first] = a.second;
     }
     for (auto a : bonus) {
-      if(gems.count(a.first)){
-        gems[a.first] += a.second;
-      } else {
-        gems[a.first] = a.second;
-      }
+        if (gems.count(a.first)) {
+            gems[a.first] += a.second;
+        } else {
+            gems[a.first] = a.second;
+        }
     }
     for (auto a : card.costs) {
         if (a.second > gems[a.first]) {
@@ -24,21 +29,6 @@ bool canAfford(const Gems &ori_gems, const Gems &bonus, const Card &card) {
         }
     }
     return true;
-}
-
-void getDifferentColorCombinations(vector<vector<Color>> &result, int start_idx, vector<Color> now_vec) {
-    if (now_vec.size() == MAX_DIFFRENT_COLOR) {
-        result.push_back(now_vec);
-        return;
-    }
-    if (COLORS_NUM - start_idx < MAX_DIFFRENT_COLOR - now_vec.size()) {
-        return;
-    }
-    for (int i = start_idx; i < COLORS_NUM; i++) {
-        now_vec.push_back((Color)i);
-        getDifferentColorCombinations(result, i + 1, now_vec);
-        now_vec.pop_back();
-    }
 }
 
 bool FetchSameColor(const Gems &gems, Color color) {
@@ -52,11 +42,8 @@ bool FetchDiffColor(const Gems &gems, const vector<Color> &colors) {
     return true;
 }
 
-void getPossibleMove(State state, vector<MovePtr>& all_moves) {
+void getPossibleMove(State state, vector<MovePtr> &all_moves) {
     const int MAX_GEMS_NUM = 10;
-    vector<vector<Color>> allColors;
-    
-    getDifferentColorCombinations(allColors, 0, vector<Color>());
     // state.players[state.player_name].
     const Gems &player_gems = state.players[state.player_name].gems;
     const Gems &player_bonus = state.players[state.player_name].bonus;
@@ -65,14 +52,14 @@ void getPossibleMove(State state, vector<MovePtr>& all_moves) {
     const vector<Card> reserved_cards = state.players[state.player_name].reserved_cards;
     int player_gem_num = 0;
 
-    for (auto a : player_gems) {
+    for (auto& a : player_gems) {
         player_gem_num += a.second;
     }
     // 3 different color
     if (player_gem_num + 3 <= MAX_GEMS_NUM) {
-        for (auto col : allColors) {
-            if (FetchDiffColor(table_gems, col)) {
-                all_moves.emplace_back(new GetDiffColorGems(col[0], col[1], col[2]));
+        for (auto three : three_colors) {
+            if (FetchDiffColor(table_gems, three)) {
+                all_moves.emplace_back(new GetDiffColorGems(three[0], three[1], three[2]));
             }
         }
     }
@@ -88,11 +75,11 @@ void getPossibleMove(State state, vector<MovePtr>& all_moves) {
     // 1 golden & save 1 card
     // only the cards on table are considered
     // TODO: reserve a unknown card
-    if(player_gem_num + 1 <= MAX_GEMS_NUM && 
-      state.table.gems.count(GOLD) && state.table.gems.at(GOLD) > 0) {
-      for (int i = 0; i < table_cards.size(); i++) {
-          all_moves.emplace_back(new ReserveCard(table_cards[i], i));
-      }
+    if (player_gem_num + 1 <= MAX_GEMS_NUM &&
+            state.table.gems.count(GOLD) && state.table.gems.at(GOLD) > 0) {
+        for (int i = 0; i < table_cards.size(); i++) {
+            all_moves.emplace_back(new ReserveCard(table_cards[i], i));
+        }
     }
     // buy table card
     for (int i = 0; i < table_cards.size(); i++) {
@@ -108,21 +95,31 @@ void getPossibleMove(State state, vector<MovePtr>& all_moves) {
     }
 }
 
+vector<double> calWeight(const State &state) {
+    double weight_score = 20.0 + state.round * 10;
+    double weight_bonus = 10.0 + 500.0 / state.round;
+    double weight_gems = 1;
+    double weight_gold_plus = 0.2;
+
+    return vector<double>({weight_score, weight_bonus, weight_gems, weight_gold_plus});
+}
+
 // TODO: 加上potential收益
 double evaluateState(State state, string player) {
     // Simple evaluate
     // params
-    const double WEIGHT_SCORE = 100;
-    const double WEIGHT_BONUS = 10;
-    const double WEIGHT_GEMS = 1;
-    const double WEIGHT_GOLD_PLUS = 0.2;
+    vector<double> weights = calWeight(state);
+    const double WEIGHT_SCORE = weights[0];
+    const double WEIGHT_BONUS = weights[1];
+    const double WEIGHT_GEMS = weights[2];
+    const double WEIGHT_GOLD_PLUS = weights[3];
 
-    const double POTENTIAL_AVG_FITNESS = 0.5;        //潜在可购买卡片的收益; 额外core/bonus/收益 / 差的GEM数量 * eight (?)
+    const double POTENTIAL_AVG_FITNESS = 0.5;        //潜在可购买卡片的收益; 额外core/bonus/收益 / 差的GEM数量 * weight (?)
     const double POTENTIAL_AVG_FITNESS_RESERVED = 1; // 保留卡不会被别人抢先购买
-    // 买潜在cards花费更多的bonus更少的gems会更好？
 
     double res = 0;
     for (auto &gem : state.players[player].gems) {
+        res += gem.second * WEIGHT_GEMS;
         if (gem.first == GOLD) {
             res += gem.second * WEIGHT_GOLD_PLUS;
         }
@@ -139,9 +136,10 @@ double evaluateState(State state, string player) {
 double calFinalFitness(const Fitness &fits, string player_name) {
     if (fits.size() == 0)
         return 0;
+
     double ans = MAX_FIT;
     for (auto &f : fits) {
-        ans -=  f.second;
+        ans -= f.second;
     }
     return ans + fits.at(player_name) * 2;
 }
@@ -149,11 +147,17 @@ double calFinalFitness(const Fitness &fits, string player_name) {
 Fitness search(const State &state, int depth, string player_name) {
     static int vistors = 0;
     vistors++;
+    if(vistors % 10000 == 0) {
+        logfile << vistors <<" vistors." << endl;
+        logfile << "elapsed " << (clock() - start_time)/CLOCKS_PER_SEC << " secs." << endl;
+    }
     Fitness all_fitness;
-    if (vistors > 10000 || depth == MAX_DEPTH) {
-        for (const auto &player : state.players) {
-            all_fitness[player.first] = evaluateState(state, player.first);
-        }
+    for (const auto &player : state.players) {
+        all_fitness[player.first] = evaluateState(state, player.first);
+    }
+
+    string now_player = state.player_name;
+    if (depth == MAX_DEPTH || depth>1 && calFinalFitness(all_fitness, now_player) < MAX_FIT) {
         return all_fitness;
     }
 
@@ -162,14 +166,15 @@ Fitness search(const State &state, int depth, string player_name) {
     double max_fitness = 0;
     vector<MovePtr> moves;
     getPossibleMove(state, moves);
-
+    logfile << "search " << moves.size() << " possible moves." << endl;
     for (auto &mv : moves) {
         State new_state = state;
         mv->move(new_state);
+        new_state.player_name = state.next_player.at(state.player_name);
         // 玩家考虑 采取操作 mv 之后，下家采取最佳策略后，所有人的适应度为 fits
         Fitness fits = search(new_state, depth + 1, new_state.player_name);
         // 计算出该得分对于自己来说
-        double my_fitness = calFinalFitness(fits, player_name);
+        double my_fitness = calFinalFitness(fits, now_player);
         if (my_fitness > max_fitness) {
             all_fitness = fits;
             max_fitness = my_fitness;
@@ -182,14 +187,25 @@ Fitness search(const State &state, int depth, string player_name) {
 MovePtr findNextMove(const State &state) {
     double max_fits = 0;
     vector<MovePtr> moves;
-
+    start_time = clock();
     getPossibleMove(state, moves);
+    logfile << "Find " << moves.size() << " possible moves." << endl;
+    logfile << "get possible " << (clock() - start_time)/CLOCKS_PER_SEC << " secs." << endl;
     MovePtr best_move(new EmptyMove);
-    for (auto& mv : moves) {
-        Fitness fits = search(state, 0, state.player_name);
+    for (auto &mv : moves) {
+        State new_state = state;
+        mv->move(new_state);
+        logfile << "move " << (clock() - start_time)/CLOCKS_PER_SEC << " secs." << endl;
+        new_state.player_name = state.next_player.at(state.player_name);
+
+        Fitness fits = search(new_state, 0, new_state.player_name);
+
+        string now_player = state.player_name;
+        double total_fits = calFinalFitness(fits, now_player);
+        double my_fits = fits[now_player];
         //TODO: 用search试每种走法的最终受益，取最大的行动
-        if (fits[state.player_name] > max_fits) {
-            max_fits = fits[state.player_name];
+        if (total_fits >= max_fits) {
+            max_fits = total_fits;
             best_move.reset(mv.release());
         }
     }

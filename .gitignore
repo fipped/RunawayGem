@@ -1,4 +1,6 @@
 .vscode
+*.txt
+*.log
 run.sh
 /build/
 .DS_Store

@@ -79,7 +79,7 @@ map<string, string>& next_player) {
         else next_player[last_name] = name;
         last_name = name;
     }
-    next_player[first_name] = last_name;
+    next_player[last_name] = first_name;
 }
 
 State readStateFromJson(string input) {
@@ -112,7 +112,6 @@ Value GetDiffColorGems::toJson() const {
     for (auto& c:colors) {
         get_color.append(color_string[c]);
     }
-
     next_move["get_different_color_gems"] = get_color;
     return next_move;
 }

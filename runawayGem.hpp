@@ -16,11 +16,11 @@ using std::vector;
 namespace runawayGem {
 enum Color {
     RED,
-    GOLD,
     GREEN,
     BLUE,
     WHITE,
     BLACK,
+    GOLD,
     UNDEFINED
 }; //gold是黄金，其余所有颜色都可以表示宝石或红利
 
@@ -28,6 +28,9 @@ static map<string, Color> color_iden = {{"red", RED}, {"gold", GOLD}, {"green", 
 
 static map<Color, string> color_string = {{RED, "red"}, {GOLD, "gold"}, {GREEN, "green"}, {BLUE, "blue"}, {WHITE, "white"}, {BLACK, "black"}};
 
+static vector<vector<Color>> three_colors = {{RED, GREEN, BLUE}, {RED, GREEN, WHITE},
+{RED, GREEN, BLACK}, {RED, BLUE, WHITE}, {RED, BLUE, BLACK}, {RED, WHITE, BLACK},
+{GREEN, BLUE, WHITE}, {GREEN, WHITE, BLACK}, {BLUE, WHITE, BLACK}};
 // 宝石(颜色 -> 个数)
 using Gems = map<enum Color, int>;
 // 评估一个状态下玩家的适应程度（越高越可能 win）
@@ -182,7 +185,7 @@ class PurchaseReservedCard : public Move {
     int id;
 };
 
-const int MAX_DEPTH = 1;
+const int MAX_DEPTH = 3;
 const int MAX_DIFFRENT_COLOR = 3;
 const int COLORS_NUM = 5;
 const int MAX_FIT = 10000;
