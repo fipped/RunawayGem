@@ -2,8 +2,10 @@
 #include <json/json.h>
 #include <fstream>
 #include <iterator>
+#include <iostream>
 
 using namespace Json;
+
 using std::ifstream;
 using std::ios;
 using std::istreambuf_iterator;
@@ -31,6 +33,7 @@ Color convertToColor(string color) {
     }
     return UNDEFINED;
 }
+
 State readStateFromJson(string filename) {
     State state;
     ifstream in(filename);
@@ -41,49 +44,48 @@ State readStateFromJson(string filename) {
     CharReaderBuilder readerBuilder;
     JSONCPP_STRING errs;
     unique_ptr<CharReader> const jsonReader(readerBuilder.newCharReader());
-    
+
     if (jsonReader->parse(str.c_str(), str.c_str() + str.length(), &value, &errs)) {
         state.round = value["round"].asInt();
         state.player_name = value["playerName"].asString();
-        for (unsigned int i = 0; i < value["table"].size(); i++) {
-            for (unsigned int j = 0; j < value["table"][i]["gems"].size(); j++) {
-                Color color = convertToColor(value["table"][i]["gems"][j]["color"].asString());
-                int count = value["table"][i]["gems"][j]["count"].asInt();
-                state.table.gems[color] = count;
-            }
 
-            for (unsigned int j = 0; j < value["table"][i]["cards"].size(); j++) {
-                int level = value["table"][i]["cards"][j]["level"].asInt();
-                int score = value["table"][i]["cards"][j]["score"].asInt();
-                Color color = convertToColor(value["table"][i]["cards"][j]["color"].asString());
-                Gems costs;
-                for (unsigned int k = 0; k < value["table"][i]["cards"][j]["cost"].size(); k++) {
-                    Color color = convertToColor(value["table"][i]["cards"][j]["costs"][k]["color"].asString());
-                    int count = value["table"][i]["cards"][j]["costs"][k]["count"].asInt();
-                    costs[color] = count;
-                }
-                state.table.cards[j] = Card(level, score, color, costs);
-            }
-
-            for (unsigned int j = 0; j < value["table"][i]["nobles"].size(); j++) {
-                int score = value["table"][i]["nobles"][j]["score"].asInt();
-                Gems req;
-                for (unsigned int k = 0; k < value["table"][i]["nobles"][j]["requirements"].size(); k++) {
-                    Color color = convertToColor(value["table"][i]["nobles"][j]["requirements"][k]["color"].asString());
-                    int count = value["table"][i]["nobles"][j]["requirements"][k]["count"].asInt();
-                    req[color] = count;
-                }
-                state.table.nobles[j] = Noble(req, score);
-            }
-            for (unsigned int j = 0; j < value["table"][i]["players"].size(); j++) {
-                string name = value["table"][i]["players"][j]["name"].asString();
-                state.players[name] = Player(name);
-            }
+        for (unsigned int i = 0; i < value["table"]["gems"].size(); i++) {
+            Color color = convertToColor(value["table"]["gems"][i]["color"].asString());
+            int count = value["table"]["gems"][i]["count"].asInt();
+            state.table.gems[color] = count;
         }
-    }
 
+        for (unsigned int j = 0; j < value["table"]["cards"].size(); j++) {
+            int level = value["table"]["cards"][j]["level"].asInt();
+            int score = value["table"]["cards"][j]["score"].asInt();
+            Color color = convertToColor(value["table"]["cards"][j]["color"].asString());
+            Gems costs;
+            for (unsigned int k = 0; k < value["table"]["cards"][j]["costs"].size(); k++) {
+                Color color = convertToColor(value["table"]["cards"][j]["costs"][k]["color"].asString());
+                int count = value["table"]["cards"][j]["costs"][k]["count"].asInt();
+                costs[color] = count;
+            }
+            state.table.cards.push_back(Card(level, score, color, costs));
+        }
+        for (unsigned int i = 0; i < value["table"]["nobles"].size(); i++) {
+            int score = value["table"]["nobles"][i]["score"].asInt();
+            Gems req;
+            
+            for (unsigned int j = 0; j < value["table"]["nobles"][i]["requirements"].size(); j++) {
+                Color color = convertToColor(value["table"]["nobles"][i]["requirements"][j]["color"].asString());
+                int count = value["table"]["nobles"][i]["requirements"][j]["count"].asInt();
+                req[color] = count;
+            }
+            state.table.nobles.push_back(Noble(req, score));
+        }
+        for (unsigned int i = 0; i < value["players"].size(); i++) {
+            string name = value["players"][i]["name"].asString();
+            state.players[name] = Player(name);
+        }
+
+    }
     return state;
-}
+} // namespace runawayGem
 
 Value GetDiffColorGems::toJson() const {
     Value next_move;
@@ -117,7 +119,7 @@ Value ReserveCard::toJson() const {
 
     get_card["color"] = card.color;
     int i = 0;
-    for (auto& cost:card.costs) {
+    for (auto &cost : card.costs) {
         get_costs[i]["color"] = cost.first;
         get_costs[i]["count"] = cost.second;
         i++;
