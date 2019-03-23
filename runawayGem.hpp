@@ -7,7 +7,8 @@
 #include <memory>
 #include <fstream>
 #include <ctime>
-#include <json/json.h>
+#include<stdlib.h>
+#include "json/json.h"
 
 using std::cout;
 using std::endl;
@@ -47,7 +48,7 @@ static vector<Value> noble_json;
 const int MAX_DEPTH = 3;
 const int MAX_DIFFRENT_COLOR = 3;
 const int COLORS_NUM = 5;
-const int MAX_FIT = 10000;
+const double MAX_FIT = 0.3; //10000;
 
 // 宝石(颜色 -> 个数)
 using Gems = map<enum Color, int>;
@@ -59,7 +60,7 @@ using Fitness = map<string, double>;
 class Card {
   public:
     Card() {}
-    Card(int _level, int _score, Color _color, Gems _costs, int _id) : 
+    Card(int _level, int _score, Color _color, Gems _costs, int _id) :
       level(_level), score(_score), color(_color), costs(_costs), id(_id) {}
     int level;
     int score;
@@ -72,7 +73,7 @@ class Card {
 class Noble {
   public:
     Noble() {}
-    Noble(const Gems &gems, int score, int _id) : 
+    Noble(const Gems &gems, int score, int _id) :
       requirements(gems), _score(score), valid(true), id(_id) {}
 
     // 传入玩家拥有的宝石，获取贵族能给的分数

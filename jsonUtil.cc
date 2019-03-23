@@ -1,5 +1,5 @@
 #include "runawayGem.hpp"
-#include <json/json.h>
+#include "json/json.h"
 #include <fstream>
 
 using namespace Json;
@@ -58,7 +58,7 @@ void parseNobles(const Value& nobles, vector<Noble>& n) {
     }
 }
 
-void parsePlayers(const Value& players_value, 
+void parsePlayers(const Value& players_value,
 map<string, Player>& players_map,
 map<string, string>& next_player) {
     string first_name, last_name;

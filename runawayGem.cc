@@ -125,34 +125,57 @@ double evaluateState(const State &state, string player) {
 }
 
 double calFinalFitness(const Fitness &fits, string player_name) {
+    // final = my_weight*my_fit / (my_weigth*my_fit + other1_fit + other2_fit)
+
+
     if (fits.size() == 0)
         return 0;
 
+    double my_weight = 2;
+
+    double total = 0;
+    for (auto &f: fits) {
+        total += f.second;
+    }
+    total += fits.at(player_name) * (my_weight - 1);
+    if (total == 0) {
+        return my_weight/(2.0+my_weight);
+    }
+    return my_weight * fits.at(player_name) / total;
+    /*
     double ans = MAX_FIT;
     for (auto &f : fits) {
         ans -= f.second;
     }
     double self_weight = 2.5;
     return ans + fits.at(player_name) * self_weight;
+    */
 }
 
 Fitness search(const State &state, int depth, string player_name) {
     static int vistors = 0;
     vistors++;
+    // static vector <double> total_fit({0,0,0,0,0,0,0,0,0});
+    // static vector <int> total_number({0,0,0,0,0,0,0,0,0});
+    // static int PARAM_PURNE = 0.5;
     if(vistors % 10000 == 0) {
         logfile << vistors <<" vistors." << endl;
         logfile << "elapsed " << (clock() - start_time)/CLOCKS_PER_SEC << " secs." << endl;
     }
+
     Fitness all_fitness;
-    for (const auto &player : state.players) {
-        all_fitness[player.first] = evaluateState(state, player.first);
-    }
 
     string now_player = state.player_name;
+
     double terminal_time = 4.9;
+
     if ((clock() - start_time) >  terminal_time * CLOCKS_PER_SEC ||
-        depth == MAX_DEPTH ||
-        (depth>1 && calFinalFitness(all_fitness, now_player) < MAX_FIT)) {
+        depth == MAX_DEPTH
+        || (depth>1 && calFinalFitness(all_fitness, now_player) < MAX_FIT)
+        ) {
+        for (const auto &player : state.players) {
+            all_fitness[player.first] = evaluateState(state, player.first);
+        }
         return all_fitness;
     }
 
@@ -164,14 +187,27 @@ Fitness search(const State &state, int depth, string player_name) {
         State new_state = state;
         mv->move(new_state);
         new_state.player_name = state.next_player.at(state.player_name);
+
+
+        // ? combine fits with curr_fitness
+        // fitness for current non_leaf node
+        Fitness curr_fitness;
+        for (const auto &player : state.players) {
+            curr_fitness[player.first] = evaluateState(state, player.first);
+        }
+        double curr_my_fitness = calFinalFitness(curr_fitness, now_player);
+
         // 玩家考虑 采取操作 mv 之后，下家采取最佳策略后，所有人的适应度为 fits
         Fitness fits = search(new_state, depth + 1, new_state.player_name);
+
         double my_fitness = calFinalFitness(fits, now_player);
+
         if (my_fitness > max_fitness) {
             all_fitness = fits;
             max_fitness = my_fitness;
         }
     }
+
     // 采取可令自己最佳的操作后，所有人的适应度
     return all_fitness;
 }
@@ -193,7 +229,10 @@ MovePtr findNextMove(const State &state) {
 
         string now_player = state.player_name;
         double total_fits = calFinalFitness(fits, now_player);
-        if (total_fits >= max_fits) {
+        if (total_fits > max_fits) {
+            max_fits = total_fits;
+            best_move.reset(mv.release());
+        } else if (total_fits == max_fits && rand()%2 == 0) {  // 相等时一定概率更新，避免oves的分布对结果带来的偏差
             max_fits = total_fits;
             best_move.reset(mv.release());
         }
