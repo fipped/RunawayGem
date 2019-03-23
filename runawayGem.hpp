@@ -4,7 +4,8 @@
 #include <map>
 #include <vector>
 #include <iostream>
-#include "json/json.h"
+#include <memory>
+#include <json/json.h>
 using std::cout;
 using std::endl;
 using std::map;
@@ -20,13 +21,14 @@ enum Color {
     GREEN,
     BLUE,
     WHITE,
-    BLACK
+    BLACK,
+    UNDEFINED
 }; //gold是黄金，其余所有颜色都可以表示宝石或红利
 
 // 宝石(颜色 -> 个数)
 using Gems = map<enum Color, int>;
 // 评估一个状态下玩家的适应程度（越高越可能 win）
-using Fitness = map<string, int>;
+using Fitness = map<string, double>;
 
 // 发展卡
 class Card {
@@ -42,6 +44,7 @@ class Card {
 // 贵族
 class Noble {
   public:
+    Noble() {}
     Noble(const Gems &gems, int score) : requirements(gems), _score(score), valid(true) {}
 
     // 传入玩家拥有的宝石，获取贵族能给的分数
@@ -72,6 +75,7 @@ class Noble {
 
 class Player {
   public:
+    Player(string _name="") : name(_name) {}
     string name;                 // 玩家名称
     int score;                   // 玩家当前分数
     Gems gems;                   // 玩家当前拥有的每种宝石的数目
@@ -135,6 +139,16 @@ class ReserveCard : public Move {
     int id;
 };
 
+class ReserveLevelCard : public Move {
+  public:
+    ReserveLevelCard(int _level) : level(_level) {}
+    void move(State &state) const override;
+    Json::Value toJson() const override;
+
+  private:
+    int level;
+};
+
 class PurchaseCard : public Move {
   public:
     PurchaseCard(Card _card, int _id) : card(_card), id(_id) {}
@@ -161,14 +175,14 @@ const int MAX_DEPTH = 3;
 
 using MovePtr = unique_ptr<Move>;
 
-State readStateFromJson();
-Json::Value getJsonSolution(const State &state);
+State readStateFromJson(string filename);
+Json::Value getJsonSolution(const State& state);
 
 MovePtr findNextMove(const State &state);
-int evaluateState(State state, string player);
+double evaluateState(State state, string player);
 vector<MovePtr> getPossibleMove(State state);
-int calFinalFitness(const Fitness &fits, string player_name);
+double calFinalFitness(const Fitness &fits, string player_name);
 Fitness search(const State &state, int depth, string player_name);
-vector<Noble> appreciateNobles(const State &state);
+bool appreciateNoble(const State& state, Noble& app_noble);
 } // namespace runawayGem
 #endif // RUNAWAYGEM_HPP_INCLUDED
