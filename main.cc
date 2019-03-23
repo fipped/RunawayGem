@@ -1,22 +1,11 @@
 #include "runawayGem.hpp"
-#include <string>
-#include <map>
-#include <vector>
 #include <iostream>
 
 using runawayGem::readStateFromJson;
-using runawayGem::solve;
-using runawayGem::State;
-using std::cout;
-using std::endl;
-using std::map;
-using std::string;
-using std::vector;
-using std::ostream;
+using runawayGem::getJsonSolution;
+using Json::Value;
 
 int main(int argc, char *argv[]) {
-    ostream& os(cout);
-    solve(readStateFromJson())->toJson(os);
-
+    std::cout << getJsonSolution(readStateFromJson());
     return 0;
 }

@@ -8,10 +8,10 @@
 using std::cout;
 using std::endl;
 using std::map;
-using std::string;
-using std::vector;
-using std::unique_ptr;
 using std::ostream;
+using std::string;
+using std::unique_ptr;
+using std::vector;
 
 namespace runawayGem {
 enum Color {
@@ -45,12 +45,12 @@ class Noble {
     Noble(const Gems &gems, int score) : requirements(gems), _score(score), valid(true) {}
 
     // 传入玩家拥有的宝石，获取贵族能给的分数
-    int score(Gems &gems) const {
+    int score(const Gems &gems) const {
         if (!valid)
             return 0;
         for (const auto &c : requirements) {
             enum Color cc = c.first;
-            if (gems.count(cc) && gems[cc] < requirements.at(cc)) {
+            if (gems.count(cc) && gems.at(cc) < requirements.at(cc)) {
                 return 0;
             }
         }
@@ -61,6 +61,8 @@ class Noble {
     void consume() {
         valid = false;
     }
+
+    Json::Value toJson() const;
 
   private:
     Gems requirements; // 兑换贵族卡需要的各个红利数目
@@ -97,16 +99,16 @@ class State {
 
 class Move {
   public:
-    virtual ~Move() = 0; 
+    virtual ~Move() = 0;
     virtual void move(State &state) const = 0;
-    virtual void toJson(ostream& os) const = 0;
+    virtual Json::Value toJson() const = 0;
 };
 
 class GetDiffColorGems : public Move {
   public:
     GetDiffColorGems(Color c1, Color c2, Color c3) : colors({c1, c2, c3}) {}
     void move(State &state) const override;
-    void toJson(ostream& os) const override;
+    Json::Value toJson() const override;
 
   private:
     vector<Color> colors;
@@ -116,7 +118,7 @@ class GetTwoSameColorGems : public Move {
   public:
     GetTwoSameColorGems(Color c) : color(c) {}
     void move(State &state) const override;
-    void toJson(ostream& os) const override;
+    Json::Value toJson() const override;
 
   private:
     Color color;
@@ -126,7 +128,7 @@ class ReserveCard : public Move {
   public:
     ReserveCard(Card _card, int _id) : card(_card), id(_id) {}
     void move(State &state) const override;
-    void toJson(ostream& os) const override;
+    Json::Value toJson() const override;
 
   private:
     Card card;
@@ -137,7 +139,7 @@ class PurchaseCard : public Move {
   public:
     PurchaseCard(Card _card, int _id) : card(_card), id(_id) {}
     void move(State &state) const override;
-    void toJson(ostream& os) const override;
+    Json::Value toJson() const override;
 
   private:
     Card card;
@@ -148,7 +150,7 @@ class PurchaseReservedCard : public Move {
   public:
     PurchaseReservedCard(Card _card, int _id) : card(_card), id(_id) {}
     void move(State &state) const override;
-    void toJson(ostream& os) const override;
+    Json::Value toJson() const override;
 
   private:
     Card card;
@@ -160,11 +162,13 @@ const int MAX_DEPTH = 3;
 using MovePtr = unique_ptr<Move>;
 
 State readStateFromJson();
+Json::Value getJsonSolution(const State &state);
 
-MovePtr solve(const State &state);
+MovePtr findNextMove(const State &state);
 int evaluateState(State state, string player);
 vector<MovePtr> getPossibleMove(State state);
 int calFinalFitness(const Fitness &fits, string player_name);
 Fitness search(const State &state, int depth, string player_name);
+vector<Noble> appreciateNobles(const State &state);
 } // namespace runawayGem
 #endif // RUNAWAYGEM_HPP_INCLUDED
