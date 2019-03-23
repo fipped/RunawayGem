@@ -1,91 +1,119 @@
 #include "runawayGem.hpp"
 #include <json/json.h>
 #include <fstream>
-#include <iterator>
-#include <iostream>
 
 using namespace Json;
 
 using std::ifstream;
-using std::ios;
-using std::istreambuf_iterator;
 
 namespace runawayGem {
 
 Color convertToColor(string color) {
-    if (color == "RED") {
+    if (color == "red") {
         return RED;
     }
-    if (color == "GOLD") {
+    if (color == "gold") {
         return GOLD;
     }
-    if (color == "GREEN") {
+    if (color == "green") {
         return GREEN;
     }
-    if (color == "BLUE") {
+    if (color == "blue") {
         return BLUE;
     }
-    if (color == "WHITE") {
+    if (color == "white") {
         return WHITE;
     }
-    if (color == "BLACK") {
+    if (color == "black") {
         return BLACK;
     }
     return UNDEFINED;
 }
 
+int getInt(Value int_field) {
+    if(int_field.isInt()) {
+        return int_field.asInt();
+    }
+    return 0;
+}
+
+void parseGems(const Value& gems, Gems& g) {
+    for (unsigned int i = 0; i < gems.size(); i++) {
+        Color color = convertToColor(gems[i]["color"].asString());
+        int count = getInt(gems[i]["count"]);
+        g[color] = count;
+    }
+}
+
+void parseCards(const Value& cards, vector<Card>& c) {
+    for (unsigned int i = 0; i < cards.size(); i++) {
+        const Value& card = cards[i];
+        int level = getInt(card["level"]);
+        int score = getInt(card["score"]);
+        Color color = convertToColor(card["color"].asString());
+        Gems costs;
+        for (unsigned int k = 0; k < card["costs"].size(); k++) {
+            Color color = convertToColor(card["costs"][k]["color"].asString());
+            int count = getInt(card["costs"][k]["count"]);
+            costs[color] = count;
+        }
+        c.emplace_back(level, score, color, costs);
+    }
+}
+
+void parseNobles(const Value& nobles, vector<Noble>& n) {
+    for (unsigned int i = 0; i < nobles.size(); i++) {
+        const Value& noble = nobles[i];
+        Gems req;
+        for (unsigned int j = 0; j < noble["requirements"].size(); j++) {
+            const Value& requirement = noble["requirements"][j];
+            Color color = convertToColor(requirement["color"].asString());
+            int count = getInt(requirement["count"]);
+            req[color] = count;
+        }
+        int score = getInt(noble["score"]);
+        n.emplace_back(req, score);
+    }
+}
+
+void parsePlayers(const Value& players_value, map<string, Player>& players_map) {
+    for (unsigned int i = 0; i < players_value.size(); i++) {
+        const Value& player_value = players_value[i];
+
+        string name = player_value["name"].asString();
+        int score = getInt(player_value["score"]);
+        Player& player = players_map[name] = Player(name, score);
+
+        parseGems(player_value["gems"], player.gems);
+        parseCards(player_value["purchased_cards"], player.purchased_cards);
+        for(auto& c:player.purchased_cards){
+            if(player.bonus.count(c.color)) {
+                player.bonus[c.color]++;
+            } else {
+                player.bonus[c.color] = 1;
+            }
+        }
+        parseCards(player_value["reserved_cards"], player.reserved_cards);
+    }
+}
+
 State readStateFromJson(string filename) {
     State state;
-    ifstream in(filename);
-    istreambuf_iterator<char> beg(in), end;
-    string str(beg, end);
-
     Value value;
-    CharReaderBuilder readerBuilder;
-    JSONCPP_STRING errs;
-    unique_ptr<CharReader> const jsonReader(readerBuilder.newCharReader());
-
-    if (jsonReader->parse(str.c_str(), str.c_str() + str.length(), &value, &errs)) {
-        state.round = value["round"].asInt();
-        state.player_name = value["playerName"].asString();
-
-        for (unsigned int i = 0; i < value["table"]["gems"].size(); i++) {
-            Color color = convertToColor(value["table"]["gems"][i]["color"].asString());
-            int count = value["table"]["gems"][i]["count"].asInt();
-            state.table.gems[color] = count;
-        }
-
-        for (unsigned int j = 0; j < value["table"]["cards"].size(); j++) {
-            int level = value["table"]["cards"][j]["level"].asInt();
-            int score = value["table"]["cards"][j]["score"].asInt();
-            Color color = convertToColor(value["table"]["cards"][j]["color"].asString());
-            Gems costs;
-            for (unsigned int k = 0; k < value["table"]["cards"][j]["costs"].size(); k++) {
-                Color color = convertToColor(value["table"]["cards"][j]["costs"][k]["color"].asString());
-                int count = value["table"]["cards"][j]["costs"][k]["count"].asInt();
-                costs[color] = count;
-            }
-            state.table.cards.push_back(Card(level, score, color, costs));
-        }
-        for (unsigned int i = 0; i < value["table"]["nobles"].size(); i++) {
-            int score = value["table"]["nobles"][i]["score"].asInt();
-            Gems req;
-            
-            for (unsigned int j = 0; j < value["table"]["nobles"][i]["requirements"].size(); j++) {
-                Color color = convertToColor(value["table"]["nobles"][i]["requirements"][j]["color"].asString());
-                int count = value["table"]["nobles"][i]["requirements"][j]["count"].asInt();
-                req[color] = count;
-            }
-            state.table.nobles.push_back(Noble(req, score));
-        }
-        for (unsigned int i = 0; i < value["players"].size(); i++) {
-            string name = value["players"][i]["name"].asString();
-            state.players[name] = Player(name);
-        }
-
-    }
+    ifstream config_doc(filename, ifstream::binary);
+    config_doc >> value;
+    state.round = getInt(value["round"]);
+    state.player_name = value["playerName"].asString();
+    parseGems(value["table"]["gems"], state.table.gems);
+    parseCards(value["table"]["cards"], state.table.cards);
+    parseNobles(value["table"]["nobles"], state.table.nobles);
+    parsePlayers(value["players"], state.players);
     return state;
-} // namespace runawayGem
+}
+
+Value EmptyMove::toJson() const {
+    return Value();
+}
 
 Value GetDiffColorGems::toJson() const {
     Value next_move;
@@ -205,13 +233,13 @@ Value Noble::toJson() const {
 }
 
 Value getJsonSolution(const State &state) {
-    Value solution;
-    Value next_move = findNextMove(state)->toJson();
+    Value solution = findNextMove(state)->toJson();
     Noble appreciate_noble;
     if (appreciateNoble(state, appreciate_noble)) {
         Value noble = appreciate_noble.toJson();
-        // TODO
+        solution["noble"] = noble;
     }
     return solution;
 }
+
 } // namespace runawayGem
