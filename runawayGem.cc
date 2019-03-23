@@ -2,6 +2,104 @@
 
 namespace runawayGem {
 
+bool ifCanAfford (const Gems & ori_gems, const Gems & bonus, const Card & card) {
+    int golden = ori_gems.at(GOLD);
+    Gems gems;
+    for (auto a : ori_gems) {
+        gems[a.first] = a.second;
+    }
+    for (auto a : bonus) {
+        gems[a.first] += a.second;
+    }
+    for (auto a : card.costs) {
+        if (a.second > gems[a.first]) {
+            golden -= (a.second - gems[a.first]);
+            if (golden < 0) { return false; }
+        }
+    }
+    return true;
+}
+
+void getAllCombination(vector<vector<Color> > & result, int start_idx, vector<Color> now_vec) {
+    if (now_vec.size() == 3) {
+        result.push_back(now_vec);
+        return;
+    }
+    if (5 - start_idx < 3 - now_vec.size()) {
+        return;
+    }
+    for (int i = start_idx; i < 5; i++) {
+        now_vec.push_back((Color) i);
+        getAllCombination(result, i+1, now_vec);
+
+    }
+}
+
+bool FetchSameColor(const Gems& gems, Color color) {
+	return gems.at(color) >= 4;
+}
+
+bool FetchDiffColor(const Gems& gems, const vector<Color> & colors) {
+	for(auto& color : colors)
+		if(gems.at(color) == 0)
+			return false;
+	return true;
+}
+
+
+vector<MovePtr> getPossibleMove(State state) {
+    const int MAX_GEMS_NUM = 10;
+    vector<MovePtr> all_moves;
+    vector<vector<Color> > allColors; getAllCombination(allColors, 0, vector<Color>());
+    // state.players[state.player_name].
+    const Gems & player_gems = state.players[state.player_name].gems;
+    const Gems & player_bonus = state.players[state.player_name].bonus;
+    const Gems & table_gems = state.table.gems;
+    const vector<Card> table_cards = state.table.cards;
+    const vector<Card> reserved_cards = state.players[state.player_name].reserved_cards;
+    int player_gem_num = 0;
+    for (auto a : player_gems) {
+        player_gem_num += a.second;
+    }
+    // 3 different color
+    if (player_gem_num + 3 <= MAX_GEMS_NUM) {
+        for (auto col : allColors) {
+            if (FetchDiffColor(table_gems, col)) {
+                all_moves.push_back(MovePtr(new GetDiffColorGems(col[0], col[1], col[2])));
+            }
+        }
+    }
+    // 2 same color
+    if (player_gem_num + 2 <= MAX_GEMS_NUM) {
+        for (int i = 0; i < 5; i++) {
+            Color c = (Color)i;
+            if (FetchSameColor(table_gems, c)) {
+                all_moves.push_back(MovePtr(new GetTwoSameColorGems(c)));
+            }
+        }
+    }
+    // 1 golden & save 1 card
+    // only the cards on table are considered
+    // TODO: reserve a unknown card
+    for (int i = 0; i < table_cards.size(); i++) {
+        all_moves.push_back(MovePtr(new ReserveCard(table_cards[i], i)));
+    }
+    // buy table card
+    for (int i = 0; i < table_cards.size(); i++) {
+        if (ifCanAfford(player_gems, player_bonus, table_cards[i])) {
+            all_moves.push_back(MovePtr(new PurchaseCard(table_cards[i], i)));
+        }
+    }
+    // bug saved card
+    for (int i = 0; i < reserved_cards.size(); i++) {
+        if (ifCanAfford(player_gems, player_bonus, reserved_cards[i])) {
+            all_moves.push_back(MovePtr(new PurchaseReservedCard(reserved_cards[i], i)));
+        }
+    }
+
+    return all_moves;
+}
+
 int evaluateState(State state, string player) {
     // Simple evaluate
     int res = 0;
@@ -17,11 +115,7 @@ int evaluateState(State state, string player) {
     return res;
 }
 
-vector<MovePtr> getPossibleMove(State state) {
-    vector<MovePtr> all_moves;
-    // TODO
-    return all_moves;
-}
+
 
 int calFinalFitness(const Fitness &fits, string player_name) {
     if (fits.size() == 0)
@@ -87,4 +181,5 @@ vector<Noble> appreciateNobles(const State& state) {
   }
   return appreciate_nobles;
 }
+
 } // namespace runawayGem
