@@ -164,6 +164,9 @@ Fitness search(const State &state, int depth, string player_name) {
     }
 
     Fitness all_fitness;
+    for (const auto &player : state.players) {
+        all_fitness[player.first] = evaluateState(state, player.first);
+    }
 
     string now_player = state.player_name;
 
@@ -173,9 +176,6 @@ Fitness search(const State &state, int depth, string player_name) {
         depth == MAX_DEPTH
         || (depth>1 && calFinalFitness(all_fitness, now_player) < MAX_FIT)
         ) {
-        for (const auto &player : state.players) {
-            all_fitness[player.first] = evaluateState(state, player.first);
-        }
         return all_fitness;
     }
 
