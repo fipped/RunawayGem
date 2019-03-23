@@ -35,7 +35,9 @@ void parseCards(const Value& cards, vector<Card>& c) {
             int count = getInt(card["costs"][k]["count"]);
             costs[color] = count;
         }
-        c.emplace_back(level, score, color, costs);
+        card_json.push_back(card);
+        int card_id = card_json.size();
+        c.emplace_back(level, score, color, costs, card_id);
     }
 }
 
@@ -50,7 +52,9 @@ void parseNobles(const Value& nobles, vector<Noble>& n) {
             req[color] = count;
         }
         int score = getInt(noble["score"]);
-        n.emplace_back(req, score);
+        noble_json.push_back(noble);
+        int noble_id = noble_json.size();
+        n.emplace_back(req, score, noble_id);
     }
 }
 
@@ -83,6 +87,7 @@ map<string, string>& next_player) {
 }
 
 State readStateFromJson(string input) {
+    logfile << input << endl;
     Value value;
     CharReaderBuilder builder;
     unique_ptr<CharReader> const reader(builder.newCharReader());
@@ -124,30 +129,14 @@ Value GetTwoSameColorGems::toJson() const {
 
 Value ReserveCard::toJson() const {
     Value next_move;
-
     Value get_reserve_card;
-    Value get_card;
-    Value get_costs;
-
-    get_card["color"] = color_string[card.color];
-    int i = 0;
-    for (auto &cost : card.costs) {
-        get_costs[i]["color"] = cost.first;
-        get_costs[i]["count"] = cost.second;
-        i++;
-    }
-    get_card["costs"] = get_costs;
-    get_card["level"] = card.level;
-    get_card["score"] = card.score;
-
-    get_reserve_card["card"] = get_card;
+    get_reserve_card["card"] = card_json[card.id];
     next_move["reserve_card"] = get_reserve_card;
     return next_move;
 }
 
 Value ReserveLevelCard::toJson() const {
     Value next_move;
-
     Value get_reserve_card;
     get_reserve_card["level"] = level;
     next_move["reserve_card"] = get_reserve_card;
@@ -157,63 +146,21 @@ Value ReserveLevelCard::toJson() const {
 Value PurchaseCard::toJson() const {
     Value next_move;
 
-    Value get_purchase_card;
-    Value get_costs;
-
-    get_purchase_card["color"] = color_string[card.color];
-    int i = 0;
-    for (auto &cost : card.costs) {
-        get_costs[i]["color"] = cost.first;
-        get_costs[i]["count"] = cost.second;
-        ++i;
-    }
-    get_purchase_card["costs"] = get_costs;
-    get_purchase_card["level"] = card.level;
-    get_purchase_card["score"] = card.score;
-
-    next_move["purchase_card"] = get_purchase_card;
+    next_move["purchase_card"] = card_json[card.id];
     return next_move;
 }
 
 Value PurchaseReservedCard::toJson() const {
     Value next_move;
-
-    Value get_purchase_reserved_card;
     Value get_costs;
 
-    get_purchase_reserved_card["color"] = color_string[card.color];
-    int i = 0;
-    for (auto &cost : card.costs) {
-        get_costs[i]["color"] = color_string[cost.first];
-        get_costs[i]["count"] = cost.second;
-        i++;
-    }
-    get_purchase_reserved_card["costs"] = get_costs;
-    get_purchase_reserved_card["level"] = card.level;
-    get_purchase_reserved_card["score"] = card.score;
-
-    next_move["purchase_reserved_card"] = get_purchase_reserved_card;
+    next_move["purchase_reserved_card"] = card_json[card.id];
 
     return next_move;
 }
 
 Value Noble::toJson() const {
-    Value noble;
-
-    Value get_requirements;
-
-    int i = 0;
-    for (auto &req : requirements) {
-        get_requirements[i]["color"] = color_string[req.first];
-        get_requirements[i]["count"] = req.second;
-        i++;
-    }
-
-    get_requirements["score"] = _score;
-
-    noble["requirements"] = get_requirements;
-
-    return noble;
+    return noble_json[id];
 }
 
 Value getJsonSolution(const State &state) {

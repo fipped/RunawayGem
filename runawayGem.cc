@@ -1,24 +1,15 @@
 #include "runawayGem.hpp"
-#include <fstream>
-#include <ctime>
 
 namespace runawayGem {
-
-std::ofstream logfile("run.log");
-double start_time;
 
 bool canAfford(const Gems &ori_gems, const Gems &bonus, const Card &card) {
     int golden = ori_gems.count(GOLD) ? ori_gems.at(GOLD) : 0;
     Gems gems;
-    for (auto a : ori_gems) {
+    for (auto& a : ori_gems) {
         gems[a.first] = a.second;
     }
-    for (auto a : bonus) {
-        if (gems.count(a.first)) {
-            gems[a.first] += a.second;
-        } else {
-            gems[a.first] = a.second;
-        }
+    for (auto& a : bonus) {
+        gems[a.first]++;
     }
     for (auto a : card.costs) {
         if (a.second > gems[a.first]) {
@@ -42,14 +33,14 @@ bool FetchDiffColor(const Gems &gems, const vector<Color> &colors) {
     return true;
 }
 
-void getPossibleMove(State state, vector<MovePtr> &all_moves) {
+void getPossibleMove(const State &state, vector<MovePtr> &all_moves) {
     const int MAX_GEMS_NUM = 10;
     // state.players[state.player_name].
-    const Gems &player_gems = state.players[state.player_name].gems;
-    const Gems &player_bonus = state.players[state.player_name].bonus;
+    const Gems &player_gems = state.players.at(state.player_name).gems;
+    const Gems &player_bonus = state.players.at(state.player_name).bonus;
     const Gems &table_gems = state.table.gems;
     const vector<Card> table_cards = state.table.cards;
-    const vector<Card> reserved_cards = state.players[state.player_name].reserved_cards;
+    const vector<Card> reserved_cards = state.players.at(state.player_name).reserved_cards;
     int player_gem_num = 0;
 
     for (auto& a : player_gems) {
@@ -105,7 +96,7 @@ vector<double> calWeight(const State &state) {
 }
 
 // TODO: 加上potential收益
-double evaluateState(State state, string player) {
+double evaluateState(const State &state, string player) {
     // Simple evaluate
     // params
     vector<double> weights = calWeight(state);
@@ -118,17 +109,17 @@ double evaluateState(State state, string player) {
     const double POTENTIAL_AVG_FITNESS_RESERVED = 1; // 保留卡不会被别人抢先购买
 
     double res = 0;
-    for (auto &gem : state.players[player].gems) {
+    for (auto &gem : state.players.at(player).gems) {
         res += gem.second * WEIGHT_GEMS;
         if (gem.first == GOLD) {
             res += gem.second * WEIGHT_GOLD_PLUS;
         }
     }
-    for (auto &b : state.players[player].bonus) {
+    for (auto &b : state.players.at(player).bonus) {
         res += b.second * WEIGHT_BONUS;
     }
 
-    res += state.players[player].score * WEIGHT_SCORE;
+    res += state.players.at(player).score * WEIGHT_SCORE;
 
     return res;
 }
@@ -141,7 +132,8 @@ double calFinalFitness(const Fitness &fits, string player_name) {
     for (auto &f : fits) {
         ans -= f.second;
     }
-    return ans + fits.at(player_name) * 2;
+    double self_weight = 2.5;
+    return ans + fits.at(player_name) * self_weight;
 }
 
 Fitness search(const State &state, int depth, string player_name) {
@@ -157,11 +149,12 @@ Fitness search(const State &state, int depth, string player_name) {
     }
 
     string now_player = state.player_name;
-    if (depth == MAX_DEPTH || depth>1 && calFinalFitness(all_fitness, now_player) < MAX_FIT) {
+    double terminal_time = 4.9;
+    if ((clock() - start_time) >  terminal_time * CLOCKS_PER_SEC || 
+        depth == MAX_DEPTH || 
+        (depth>1 && calFinalFitness(all_fitness, now_player) < MAX_FIT)) {
         return all_fitness;
     }
-
-    // OPTIONAL TODO: PRUNE
 
     double max_fitness = 0;
     vector<MovePtr> moves;
@@ -173,7 +166,6 @@ Fitness search(const State &state, int depth, string player_name) {
         new_state.player_name = state.next_player.at(state.player_name);
         // 玩家考虑 采取操作 mv 之后，下家采取最佳策略后，所有人的适应度为 fits
         Fitness fits = search(new_state, depth + 1, new_state.player_name);
-        // 计算出该得分对于自己来说
         double my_fitness = calFinalFitness(fits, now_player);
         if (my_fitness > max_fitness) {
             all_fitness = fits;
@@ -195,15 +187,12 @@ MovePtr findNextMove(const State &state) {
     for (auto &mv : moves) {
         State new_state = state;
         mv->move(new_state);
-        logfile << "move " << (clock() - start_time)/CLOCKS_PER_SEC << " secs." << endl;
         new_state.player_name = state.next_player.at(state.player_name);
 
         Fitness fits = search(new_state, 0, new_state.player_name);
 
         string now_player = state.player_name;
         double total_fits = calFinalFitness(fits, now_player);
-        double my_fits = fits[now_player];
-        //TODO: 用search试每种走法的最终受益，取最大的行动
         if (total_fits >= max_fits) {
             max_fits = total_fits;
             best_move.reset(mv.release());

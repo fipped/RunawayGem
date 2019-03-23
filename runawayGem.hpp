@@ -5,13 +5,18 @@
 #include <vector>
 #include <iostream>
 #include <memory>
+#include <fstream>
+#include <ctime>
 #include <json/json.h>
+
 using std::cout;
 using std::endl;
 using std::map;
 using std::string;
 using std::unique_ptr;
 using std::vector;
+using std::ofstream;
+using Json::Value;
 
 namespace runawayGem {
 enum Color {
@@ -30,28 +35,45 @@ static map<Color, string> color_string = {{RED, "red"}, {GOLD, "gold"}, {GREEN, 
 
 static vector<vector<Color>> three_colors = {{RED, GREEN, BLUE}, {RED, GREEN, WHITE},
 {RED, GREEN, BLACK}, {RED, BLUE, WHITE}, {RED, BLUE, BLACK}, {RED, WHITE, BLACK},
-{GREEN, BLUE, WHITE}, {GREEN, WHITE, BLACK}, {BLUE, WHITE, BLACK}};
+{GREEN, BLUE, WHITE}, {GREEN, BLUE, BLACK}, {GREEN, WHITE, BLACK}, {BLUE, WHITE, BLACK}};
+
+static ofstream logfile("run.log");
+
+static double start_time;
+
+static vector<Value> card_json;
+static vector<Value> noble_json;
+
+const int MAX_DEPTH = 3;
+const int MAX_DIFFRENT_COLOR = 3;
+const int COLORS_NUM = 5;
+const int MAX_FIT = 10000;
+
 // 宝石(颜色 -> 个数)
 using Gems = map<enum Color, int>;
 // 评估一个状态下玩家的适应程度（越高越可能 win）
 using Fitness = map<string, double>;
 
+
 // 发展卡
 class Card {
   public:
     Card() {}
-    Card(int _level, int _score, Color _color, Gems _costs) : level(_level), score(_score), color(_color), costs(_costs) {}
+    Card(int _level, int _score, Color _color, Gems _costs, int _id) : 
+      level(_level), score(_score), color(_color), costs(_costs), id(_id) {}
     int level;
     int score;
     Color color; // 红利颜色
     Gems costs;
+    int id;
 };
 
 // 贵族
 class Noble {
   public:
     Noble() {}
-    Noble(const Gems &gems, int score) : requirements(gems), _score(score), valid(true) {}
+    Noble(const Gems &gems, int score, int _id) : 
+      requirements(gems), _score(score), valid(true), id(_id) {}
 
     // 传入玩家拥有的宝石，获取贵族能给的分数
     int score(const Gems &gems) const {
@@ -79,6 +101,7 @@ class Noble {
     Gems requirements; // 兑换贵族卡需要的各个红利数目
     int _score;        // 0~5
     bool valid;        // 贵族是否还可用
+    int id;
 };
 
 class Player {
@@ -144,13 +167,13 @@ class GetTwoSameColorGems : public Move {
 
 class ReserveCard : public Move {
   public:
-    ReserveCard(Card _card, int _id) : card(_card), id(_id) {}
+    ReserveCard(Card _card, int _idx) : card(_card), idx(_idx) {}
     void move(State &state) const override;
     Json::Value toJson() const override;
 
   private:
     Card card;
-    int id;
+    int idx;
 };
 
 class ReserveLevelCard : public Move {
@@ -165,38 +188,34 @@ class ReserveLevelCard : public Move {
 
 class PurchaseCard : public Move {
   public:
-    PurchaseCard(Card _card, int _id) : card(_card), id(_id) {}
+    PurchaseCard(Card _card, int _idx) : card(_card), idx(_idx) {}
     void move(State &state) const override;
     Json::Value toJson() const override;
 
   private:
     Card card;
-    int id;
+    int idx;
 };
 
 class PurchaseReservedCard : public Move {
   public:
-    PurchaseReservedCard(Card _card, int _id) : card(_card), id(_id) {}
+    PurchaseReservedCard(Card _card, int _idx) : card(_card), idx(_idx) {}
     void move(State &state) const override;
     Json::Value toJson() const override;
 
   private:
     Card card;
-    int id;
+    int idx;
 };
 
-const int MAX_DEPTH = 3;
-const int MAX_DIFFRENT_COLOR = 3;
-const int COLORS_NUM = 5;
-const int MAX_FIT = 10000;
 using MovePtr = unique_ptr<Move>;
 
 State readStateFromJson(string filename);
 Json::Value getJsonSolution(const State &state);
 
 MovePtr findNextMove(const State &state);
-double evaluateState(State state, string player);
-void getPossibleMove(State state, vector<MovePtr> &all_moves);
+double evaluateState(const State &state, string player);
+void getPossibleMove(const State &state, vector<MovePtr> &all_moves);
 double calFinalFitness(const Fitness &fits, string player_name);
 Fitness search(const State &state, int depth, string player_name);
 bool appreciateNoble(const State &state, Noble &app_noble);

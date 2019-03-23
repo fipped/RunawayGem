@@ -18,39 +18,39 @@ void GetTwoSameColorGems::move(State &state) const {
 }
 
 void ReserveCard::move(State &state) const {
-    state.table.cards.erase(state.table.cards.begin() + id);
+    state.table.cards.erase(state.table.cards.begin() + idx);
     state.players[state.player_name].reserved_cards.push_back(card);
     state.players[state.player_name].gems[GOLD]++;
 }
 
 void PurchaseCard::move(State &state) const {
-    state.table.cards.erase(state.table.cards.begin() + id);
+    state.table.cards.erase(state.table.cards.begin() + idx);
+
     Player &now_player = state.players[state.player_name];
+
     now_player.score += card.score;
-    now_player.gems[card.color]++;
     for (auto &c : card.costs) {
-        if(c.second > now_player.bonus[c.first] + now_player.gems[c.first]) {
-          now_player.gems[GOLD] += now_player.bonus[c.first] + now_player.gems[c.first] - c.second;
-          now_player.gems[c.first] = 0;
+        if (c.second > now_player.bonus[c.first] + now_player.gems[c.first]) {
+            now_player.gems[GOLD] += now_player.bonus[c.first] + now_player.gems[c.first] - c.second;
+            now_player.gems[c.first] = 0;
+        } else {
+            now_player.gems[c.first] -= c.second - now_player.bonus[c.first];
         }
-        else
-          now_player.gems[c.first] -= c.second - now_player.bonus[c.first];
     }
     now_player.bonus[card.color]++;
 }
 
 void PurchaseReservedCard::move(State &state) const {
     Player &now_player = state.players[state.player_name];
-    now_player.reserved_cards.erase(now_player.reserved_cards.begin() + id);
+    now_player.reserved_cards.erase(now_player.reserved_cards.begin() + idx);
     now_player.score += card.score;
-    now_player.gems[card.color]++;
     for (auto &c : card.costs) {
-        if(c.second > now_player.bonus[c.first] + now_player.gems[c.first]) {
-          now_player.gems[GOLD] += now_player.bonus[c.first] + now_player.gems[c.first] - c.second;
-          now_player.gems[c.first] = 0;
+        if (c.second > now_player.bonus[c.first] + now_player.gems[c.first]) {
+            now_player.gems[GOLD] += now_player.bonus[c.first] + now_player.gems[c.first] - c.second;
+            now_player.gems[c.first] = 0;
+        } else {
+            now_player.gems[c.first] -= c.second - now_player.bonus[c.first];
         }
-        else
-          now_player.gems[c.first] -= c.second - now_player.bonus[c.first];
     }
     now_player.bonus[card.color]++;
 }
