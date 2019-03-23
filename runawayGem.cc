@@ -88,18 +88,12 @@ void getPossibleMove(State state, vector<MovePtr>& all_moves) {
     // 1 golden & save 1 card
     // only the cards on table are considered
     // TODO: reserve a unknown card
-<<<<<<< HEAD
-    if (table_gems.at(GOLD) > 0) {
-        for (int i = 0; i < table_cards.size(); i++) {
-            all_moves.push_back(MovePtr(new ReserveCard(table_cards[i], i)));
-        }
-=======
+
     if(player_gem_num + 1 <= MAX_GEMS_NUM && 
       state.table.gems.count(GOLD) && state.table.gems.at(GOLD) > 0) {
       for (int i = 0; i < table_cards.size(); i++) {
           all_moves.emplace_back(new ReserveCard(table_cards[i], i));
       }
->>>>>>> e5aaa58db4d816081eada072903f24a000f7873b
     }
     // buy table card
     for (int i = 0; i < table_cards.size(); i++) {
@@ -115,43 +109,29 @@ void getPossibleMove(State state, vector<MovePtr>& all_moves) {
     }
 }
 
-// TODO: 加上potential收益
-<<<<<<< HEAD
 
+vector<double> calWeight(const State & state){
+    double weight_score = 20.0 + state.round * 10;
+    double weight_bonus = 10.0 + 500.0 / state.round;
+    double weight_gems = 1;
+    double weight_gold_plus = 0.2;
 
-vector<int> calWeight(const State & state){
-    int weight_score = 100;
-    int weight_bonus = 10;
-    int weight_gems = 1;
-    int weight_gold_plus = 0.2;
-
-    return vector<int>({weight_score, weight_bonus, weight_gems, weight_gold_plus});
+    return vector<double>({weight_score, weight_bonus, weight_gems, weight_gold_plus});
 }
 
 
-int evaluateState(State state, string player) {
-    // Simple evaluate
-    // params
-
-    vector<int> weights = calWeight(state);
-
-    const int WEIGHT_SCORE = weights[0];
-    const int WEIGHT_BONUS = weights[1];
-    const int WEIGHT_GEMS = weights[2];
-    const int WEIGHT_GOLD_PLUS = weights[3];
-=======
+// TODO: 加上potential收益
 double evaluateState(State state, string player) {
     // Simple evaluate
     // params
-    const double WEIGHT_SCORE = 100;
-    const double WEIGHT_BONUS = 10;
-    const double WEIGHT_GEMS = 1;
-    const double WEIGHT_GOLD_PLUS = 0.2;
->>>>>>> b05aa15a85a8b2ee2fb045efd1054b18b548ddab
+    vector<double> weights = calWeight(state);
+    const double WEIGHT_SCORE = weights[0];
+    const double WEIGHT_BONUS = weights[1];
+    const double WEIGHT_GEMS = weights[2];
+    const double WEIGHT_GOLD_PLUS = weights[3];
 
-    const double POTENTIAL_AVG_FITNESS = 0.5;        //潜在可购买卡片的收益; 额外core/bonus/收益 / 差的GEM数量 * eight (?)
+    const double POTENTIAL_AVG_FITNESS = 0.5; //潜在可购买卡片的收益; 额外core/bonus/收益 / 差的GEM数量 * eight (?)
     const double POTENTIAL_AVG_FITNESS_RESERVED = 1; // 保留卡不会被别人抢先购买
-    // 买潜在cards花费更多的bonus更少的gems会更好？
 
     double res = 0;
     for (auto &gem : state.players[player].gems) {
