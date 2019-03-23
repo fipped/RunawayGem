@@ -33,14 +33,15 @@ Color convertToColor(string color) {
 }
 State readStateFromJson(string filename) {
     State state;
-    // TODO
     ifstream in(filename);
     istreambuf_iterator<char> beg(in), end;
     string str(beg, end);
+
     Value value;
     CharReaderBuilder readerBuilder;
     JSONCPP_STRING errs;
     unique_ptr<CharReader> const jsonReader(readerBuilder.newCharReader());
+    
     if (jsonReader->parse(str.c_str(), str.c_str() + str.length(), &value, &errs)) {
         state.round = value["round"].asInt();
         state.player_name = value["playerName"].asString();
