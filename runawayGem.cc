@@ -62,7 +62,7 @@ Fitness search(const State &state, int depth, string player_name) {
     return all_fitness;
 }
 
-MovePtr solve(const State &state) {
+MovePtr findNextMove(const State &state) {
     MovePtr best_move;
 
     int max_score = 0;
@@ -78,4 +78,13 @@ MovePtr solve(const State &state) {
     return best_move;
 }
 
+vector<Noble> appreciateNobles(const State& state) {
+  vector<Noble> appreciate_nobles;
+  for(auto noble: state.table.nobles){
+    if(noble.score(state.players.at(state.player_name).gems)) {
+      appreciate_nobles.push_back(noble);
+    }
+  }
+  return appreciate_nobles;
+}
 } // namespace runawayGem

@@ -45,25 +45,4 @@ void PurchaseReservedCard::move(State &state) const {
     now_player.bonus[card.color]++;
 }
 
-void GetDiffColorGems::toJson(ostream& os) const {
-  // TODO
-  // os << YourJsonl
-}
-
-void GetTwoSameColorGems::toJson(ostream& os) const {
-  // TODO
-}
-
-void ReserveCard::toJson(ostream& os) const {
-  // TODO
-}
-
-void PurchaseCard::toJson(ostream& os) const {
-  // TODO
-}
-
-void PurchaseReservedCard::toJson(ostream& os) const {
-  // TODO
-}
-
 } // namespace runawayGem
