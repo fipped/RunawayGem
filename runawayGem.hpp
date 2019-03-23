@@ -9,7 +9,6 @@
 using std::cout;
 using std::endl;
 using std::map;
-using std::ostream;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -49,11 +48,13 @@ class Noble {
 
     // 传入玩家拥有的宝石，获取贵族能给的分数
     int score(const Gems &gems) const {
-        if (!valid)
+        if (!valid) {
             return 0;
+        }
         for (const auto &c : requirements) {
             enum Color cc = c.first;
-            if (gems.count(cc) && gems.at(cc) < requirements.at(cc)) {
+            int remain = gems.count(cc) ? gems.at(cc) : 0;
+            if (remain < requirements.at(cc)) {
                 return 0;
             }
         }
@@ -75,13 +76,13 @@ class Noble {
 
 class Player {
   public:
-    Player(string _name="") : name(_name) {}
+    Player(string _name = "", int _score=0) : name(_name), score(_score) {}
     string name;                 // 玩家名称
     int score;                   // 玩家当前分数
     Gems gems;                   // 玩家当前拥有的每种宝石的数目
     Gems bonus;                  // 玩家当前拥有的每种红利的数目
+    vector<Card> purchased_cards; // 购买了的发展卡
     vector<Card> reserved_cards; // 保留卡
-    vector<Noble> nobles;        // 贵族卡
 };
 
 // 桌面
@@ -106,6 +107,12 @@ class Move {
     virtual ~Move() = 0;
     virtual void move(State &state) const = 0;
     virtual Json::Value toJson() const = 0;
+};
+
+class EmptyMove : public Move {
+  public:
+    void move(State &state) const override {};
+    Json::Value toJson() const override;
 };
 
 class GetDiffColorGems : public Move {
@@ -171,19 +178,20 @@ class PurchaseReservedCard : public Move {
     int id;
 };
 
-const int MAX_DEPTH = 3;
+const int MAX_DEPTH = 1;
 const int MAX_DIFFRENT_COLOR = 3;
 const int COLORS_NUM = 5;
+const int MAX_FIT = 10000;
 using MovePtr = unique_ptr<Move>;
 
 State readStateFromJson(string filename);
-Json::Value getJsonSolution(const State& state);
+Json::Value getJsonSolution(const State &state);
 
 MovePtr findNextMove(const State &state);
 double evaluateState(State state, string player);
-vector<MovePtr> getPossibleMove(State state);
+void getPossibleMove(State state, vector<MovePtr>& all_moves);
 double calFinalFitness(const Fitness &fits, string player_name);
 Fitness search(const State &state, int depth, string player_name);
-bool appreciateNoble(const State& state, Noble& app_noble);
+bool appreciateNoble(const State &state, Noble &app_noble);
 } // namespace runawayGem
 #endif // RUNAWAYGEM_HPP_INCLUDED
