@@ -6,3 +6,4 @@ run.sh
 .DS_Store
 Puzzle
 *.jar
+/displayer/
