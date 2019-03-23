@@ -172,7 +172,8 @@ class PurchaseReservedCard : public Move {
 };
 
 const int MAX_DEPTH = 3;
-
+const int MAX_DIFFRENT_COLOR = 3;
+const int COLORS_NUM = 5;
 using MovePtr = unique_ptr<Move>;
 
 State readStateFromJson(string filename);

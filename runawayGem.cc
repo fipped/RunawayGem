@@ -2,7 +2,7 @@
 
 namespace runawayGem {
 
-bool ifCanAfford (const Gems & ori_gems, const Gems & bonus, const Card & card) {
+bool canAfford(const Gems &ori_gems, const Gems &bonus, const Card &card) {
     int golden = ori_gems.at(GOLD);
     Gems gems;
     for (auto a : ori_gems) {
@@ -14,47 +14,53 @@ bool ifCanAfford (const Gems & ori_gems, const Gems & bonus, const Card & card) 
     for (auto a : card.costs) {
         if (a.second > gems[a.first]) {
             golden -= (a.second - gems[a.first]);
-            if (golden < 0) { return false; }
+            if (golden < 0) {
+                return false;
+            }
         }
     }
     return true;
 }
 
-void getAllCombination(vector<vector<Color> > & result, int start_idx, vector<Color> now_vec) {
-    if (now_vec.size() == 3) {
+void getDifferentColorCombinations(vector<vector<Color>> &result, int start_idx, vector<Color> now_vec) {
+    if (now_vec.size() == MAX_DIFFRENT_COLOR) {
         result.push_back(now_vec);
         return;
     }
-    if (5 - start_idx < 3 - now_vec.size()) {
+    if (COLORS_NUM - start_idx < MAX_DIFFRENT_COLOR - now_vec.size()) {
         return;
     }
-    for (int i = start_idx; i < 5; i++) {
-        now_vec.push_back((Color) i);
-        getAllCombination(result, i+1, now_vec);
-
+    for (int i = start_idx; i < COLORS_NUM; i++) {
+        now_vec.push_back((Color)i);
+        getDifferentColorCombinations(result, i + 1, now_vec);
     }
+    
+    Color c;
+    c & 1;
+
 }
 
-bool FetchSameColor(const Gems& gems, Color color) {
-	return gems.at(color) >= 4;
+bool FetchSameColor(const Gems &gems, Color color) {
+    return gems.at(color) >= 4;
 }
 
-bool FetchDiffColor(const Gems& gems, const vector<Color> & colors) {
-	for(auto& color : colors)
-		if(gems.at(color) == 0)
-			return false;
-	return true;
+bool FetchDiffColor(const Gems &gems, const vector<Color> &colors) {
+    for (auto &color : colors)
+        if (gems.at(color) == 0)
+            return false;
+    return true;
 }
-
 
 vector<MovePtr> getPossibleMove(State state) {
     const int MAX_GEMS_NUM = 10;
     vector<MovePtr> all_moves;
-    vector<vector<Color> > allColors; getAllCombination(allColors, 0, vector<Color>());
+    vector<vector<Color>> allColors;
+
+    getDifferentColorCombinations(allColors, 0, vector<Color>());
     // state.players[state.player_name].
-    const Gems & player_gems = state.players[state.player_name].gems;
-    const Gems & player_bonus = state.players[state.player_name].bonus;
-    const Gems & table_gems = state.table.gems;
+    const Gems &player_gems = state.players[state.player_name].gems;
+    const Gems &player_bonus = state.players[state.player_name].bonus;
+    const Gems &table_gems = state.table.gems;
     const vector<Card> table_cards = state.table.cards;
     const vector<Card> reserved_cards = state.players[state.player_name].reserved_cards;
     int player_gem_num = 0;
@@ -86,13 +92,13 @@ vector<MovePtr> getPossibleMove(State state) {
     }
     // buy table card
     for (int i = 0; i < table_cards.size(); i++) {
-        if (ifCanAfford(player_gems, player_bonus, table_cards[i])) {
+        if (canAfford(player_gems, player_bonus, table_cards[i])) {
             all_moves.push_back(MovePtr(new PurchaseCard(table_cards[i], i)));
         }
     }
     // bug saved card
     for (int i = 0; i < reserved_cards.size(); i++) {
-        if (ifCanAfford(player_gems, player_bonus, reserved_cards[i])) {
+        if (canAfford(player_gems, player_bonus, reserved_cards[i])) {
             all_moves.push_back(MovePtr(new PurchaseReservedCard(reserved_cards[i], i)));
         }
     }
@@ -109,7 +115,7 @@ double evaluateState(State state, string player) {
     const double WEIGHT_GEMS = 1;
     const double WEIGHT_GOLD_PLUS = 0.2;
 
-    const double POTENTIAL_AVG_FITNESS = 0.5; //潜在可购买卡片的收益; 额外core/bonus/收益 / 差的GEM数量 * eight (?)
+    const double POTENTIAL_AVG_FITNESS = 0.5;        //潜在可购买卡片的收益; 额外core/bonus/收益 / 差的GEM数量 * eight (?)
     const double POTENTIAL_AVG_FITNESS_RESERVED = 1; // 保留卡不会被别人抢先购买
     // 买潜在cards花费更多的bonus更少的gems会更好？
 
@@ -127,8 +133,6 @@ double evaluateState(State state, string player) {
 
     return res;
 }
-
-
 
 double calFinalFitness(const Fitness &fits, string player_name) {
     if (fits.size() == 0)
@@ -174,25 +178,26 @@ MovePtr findNextMove(const State &state) {
 
     double max_fits = 0;
     vector<MovePtr> moves = getPossibleMove(state);
+
     for (MovePtr &mv : moves) {
         Fitness fits = search(state, 0, state.player_name);
         //TODO: 用search试每种走法的最终受益，取最大的行动
         if (fits[state.player_name] > max_fits) {
-          max_fits = fits[state.player_name];
-          best_move.reset(mv.release());
+            max_fits = fits[state.player_name];
+            best_move.reset(mv.release());
         }
     }
     return best_move;
 }
 
-bool appreciateNoble(const State& state, Noble& app_noble) {
-  for(auto noble: state.table.nobles){
-    if(noble.score(state.players.at(state.player_name).gems)) {
-      app_noble = noble;
-      return true;
+bool appreciateNoble(const State &state, Noble &app_noble) {
+    for (auto noble : state.table.nobles) {
+        if (noble.score(state.players.at(state.player_name).gems)) {
+            app_noble = noble;
+            return true;
+        }
     }
-  }
-  return false;
+    return false;
 }
 
 } // namespace runawayGem
