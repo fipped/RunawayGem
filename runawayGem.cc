@@ -81,8 +81,10 @@ vector<MovePtr> getPossibleMove(State state) {
     // 1 golden & save 1 card
     // only the cards on table are considered
     // TODO: reserve a unknown card
-    for (int i = 0; i < table_cards.size(); i++) {
-        all_moves.push_back(MovePtr(new ReserveCard(table_cards[i], i)));
+    if (table_gems.at(GOLD) > 0) {
+        for (int i = 0; i < table_cards.size(); i++) {
+            all_moves.push_back(MovePtr(new ReserveCard(table_cards[i], i)));
+        }
     }
     // buy table card
     for (int i = 0; i < table_cards.size(); i++) {
@@ -103,13 +105,28 @@ vector<MovePtr> getPossibleMove(State state) {
 
 // TODO: 不同的weight在对局前后期不同：如前期在意红利，后期更在意直接得分
 // TODO: 加上potential收益
+
+
+vector<int> calWeight(const State & state){
+    int weight_score = 100;
+    int weight_bonus = 10;
+    int weight_gems = 1;
+    int weight_gold_plus = 0.2;
+
+    return vector<int>({weight_score, weight_bonus, weight_gems, weight_gold_plus});
+}
+
+
 int evaluateState(State state, string player) {
     // Simple evaluate
     // params
-    const int WEIGHT_SCORE = 100;
-    const int WEIGHT_BONUS = 10;
-    const int WEIGHT_GEMS = 1;
-    const int WEIGHT_GOLD_PLUS = 0.2;
+
+    vector<int> weights = calWeight(state);
+
+    const int WEIGHT_SCORE = weights[0];
+    const int WEIGHT_BONUS = weights[1];
+    const int WEIGHT_GEMS = weights[2];
+    const int WEIGHT_GOLD_PLUS = weights[3];
 
     const int POTENTIAL_AVG_FITNESS = 0.5; //潜在可购买卡片的收益; 额外core/bonus/收益 / 差的GEM数量 * eight (?)
     const int POTENTIAL_AVG_FITNESS_RESERVED = 1; // 保留卡不会被别人抢先购买
