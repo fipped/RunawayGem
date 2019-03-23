@@ -35,8 +35,8 @@ void parseCards(const Value& cards, vector<Card>& c) {
             int count = getInt(card["costs"][k]["count"]);
             costs[color] = count;
         }
-        card_json.push_back(card);
         int card_id = card_json.size();
+        card_json.push_back(card);
         c.emplace_back(level, score, color, costs, card_id);
     }
 }
@@ -52,8 +52,8 @@ void parseNobles(const Value& nobles, vector<Noble>& n) {
             req[color] = count;
         }
         int score = getInt(noble["score"]);
-        noble_json.push_back(noble);
         int noble_id = noble_json.size();
+        noble_json.push_back(noble);
         n.emplace_back(req, score, noble_id);
     }
 }
