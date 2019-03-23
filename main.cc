@@ -6,6 +6,9 @@ using runawayGem::getJsonSolution;
 using Json::Value;
 
 int main(int argc, char *argv[]) {
-    std::cout << getJsonSolution(readStateFromJson());
+    if(argc < 2) {
+      return 0;
+    }
+    std::cout << getJsonSolution(readStateFromJson(argv[1]));
     return 0;
 }

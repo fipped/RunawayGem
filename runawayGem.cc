@@ -100,27 +100,27 @@ vector<MovePtr> getPossibleMove(State state) {
     return all_moves;
 }
 
-int evaluateState(State state, string player) {
-    // Simple evaluate
-    int res = 0;
+double evaluateState(State state, string player) {
+    double res = 0;
+    for (auto &b : state.players[player].bonus) {
+        res += b.second;
+    }
+
     for (auto &gem : state.players[player].gems) {
         res += gem.second;
         if (gem.first == GOLD) {
             res += gem.second * 0.2;
         }
     }
-    for (auto &b : state.players[player].bonus) {
-        res += b.second;
-    }
     return res;
 }
 
 
 
-int calFinalFitness(const Fitness &fits, string player_name) {
+double calFinalFitness(const Fitness &fits, string player_name) {
     if (fits.size() == 0)
         return -__INT32_MAX__;
-    int ans = 0;
+    double ans = 0;
     for (auto &f : fits) {
         ans -= f.second;
     }
@@ -138,7 +138,7 @@ Fitness search(const State &state, int depth, string player_name) {
 
     // OPTIONAL TODO: PRUNE
 
-    int max_fitness = 0;
+    double max_fitness = 0;
     vector<MovePtr> moves = getPossibleMove(state);
     for (auto &mv : moves) {
         State new_state = state;
@@ -146,7 +146,7 @@ Fitness search(const State &state, int depth, string player_name) {
         // 玩家考虑 采取操作 mv 之后，下家采取最佳策略后，所有人的适应度为 fits
         Fitness fits = search(new_state, depth + 1, new_state.player_name);
         // 计算出该得分对于自己来说
-        int my_fitness = calFinalFitness(fits, player_name);
+        double my_fitness = calFinalFitness(fits, player_name);
         if (my_fitness > max_fitness) {
             all_fitness = fits;
             max_fitness = my_fitness;
@@ -159,27 +159,27 @@ Fitness search(const State &state, int depth, string player_name) {
 MovePtr findNextMove(const State &state) {
     MovePtr best_move;
 
-    int max_score = 0;
+    double max_fits = 0;
     vector<MovePtr> moves = getPossibleMove(state);
     for (MovePtr &mv : moves) {
-        Fitness score = search(state, 0, state.player_name);
+        Fitness fits = search(state, 0, state.player_name);
         //TODO: 用search试每种走法的最终受益，取最大的行动
-        if (score[state.player_name] > max_score) {
-          max_score = score[state.player_name];
+        if (fits[state.player_name] > max_fits) {
+          max_fits = fits[state.player_name];
           best_move.reset(mv.release());
         }
     }
     return best_move;
 }
 
-vector<Noble> appreciateNobles(const State& state) {
-  vector<Noble> appreciate_nobles;
+bool appreciateNoble(const State& state, Noble& app_noble) {
   for(auto noble: state.table.nobles){
     if(noble.score(state.players.at(state.player_name).gems)) {
-      appreciate_nobles.push_back(noble);
+      app_noble = noble;
+      return true;
     }
   }
-  return appreciate_nobles;
+  return false;
 }
 
 } // namespace runawayGem
