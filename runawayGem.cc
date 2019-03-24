@@ -9,7 +9,7 @@ bool canAfford(const Gems &ori_gems, const Gems &bonus, const Card &card) {
         gems[a.first] = a.second;
     }
     for (auto& a : bonus) {
-        gems[a.first]++;
+        gems[a.first] += a.second;
     }
     for (auto a : card.costs) {
         if (a.second > gems[a.first]) {
@@ -84,6 +84,7 @@ void getPossibleMove(const State &state, vector<MovePtr> &all_moves) {
             all_moves.emplace_back(new PurchaseReservedCard(reserved_cards[i], i));
         }
     }
+    logfile << "????????" << all_moves.size() << endl;
 }
 
 vector<double> calWeight(const State &state) {
@@ -213,6 +214,7 @@ Fitness search(const State &state, int depth, string player_name) {
 }
 
 MovePtr findNextMove(const State &state) {
+    logfile << "Started finding next move." << endl;
     double max_fits = 0;
     vector<MovePtr> moves;
     start_time = clock();
