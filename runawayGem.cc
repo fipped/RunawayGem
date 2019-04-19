@@ -84,7 +84,6 @@ void getPossibleMove(const State &state, vector<MovePtr> &all_moves) {
             all_moves.emplace_back(new PurchaseReservedCard(reserved_cards[i], i));
         }
     }
-    logfile << "????????" << all_moves.size() << endl;
 }
 
 vector<double> calWeight(const State &state) {

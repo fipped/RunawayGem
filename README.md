@@ -12,6 +12,16 @@ A simple AI for game Splendor.
 ## AI 对战
 
 
+解压 Splendor.tar.bz2.\* 得到 Splendor.jar
+
+```shell
+cat Splendor.tar.bz2.* | tar -jxv
+```
+
+对战
+
 ```shell
 java -jar Splendor.jar --player_binary_paths player1,player2,player3 --game_log_path log.txt
 ```
+
+player1,player2,player3 是编译好的二进制, 注意必须名字不一样。
